@@ -4,23 +4,28 @@ import time
 from bs4 import BeautifulSoup
 
 class Crawler():
+    def __init__(self, base_url, limit):
+        self.base_url = base_url
+        self.rp = self.get_robots_txt()
+        self.limit = limit
+        self.already_visited = []
+
     def get_html(self, url):
         request = urllib.request.Request(url=url, method='GET')
         response = urllib.request.urlopen(request)
         data=response.read()
         return(data)
 
-    def get_robots_txt(self, base_url):
+    def get_robots_txt(self):
         rp = urllib.robotparser.RobotFileParser()
-        rp.set_url(base_url + "/robots.txt")
+        rp.set_url(self.base_url + "/robots.txt")
         rp.read()
-        self.base_url = base_url
-        self.rp = rp
+        return rp
 
     def politeness(self):
         delay = self.rp.crawl_delay('*')
         if delay is None:
-            time.sleep(0.5)
+            time.sleep(1)
         else:
             time.sleep(delay)
 
@@ -58,7 +63,7 @@ class Crawler():
             links.append(href)
         return links
 
-    def extract(self, url):
+    def extract_one_page(self, url):
         soup = self.parse_page(url)
         if soup is None:
             return None
@@ -71,11 +76,39 @@ class Crawler():
             extraction["title"] = title
             extraction["description"] = first_paragraph
             extraction["links"] = links
-            print(links)
+
             return extraction
+    
+    def give_priority(self, link):
+        if "/prodcut/" in link:
+            return 0
+        elif "/products" in link:
+            return 1
+        else:
+            return 2
+        
 
     
+    def extract_some_pages(self, url_dep):
+        to_visit = []
+        extraction = []
+        extraction.append(self.extract_one_page(url_dep))
+        self.already_visited.append(url_dep)
+        for link in extraction[0]["links"]:
+                to_visit.append((self.give_priority(link), link))
+        nb_of_pages_visited = 1
+        while nb_of_pages_visited < self.limit:
+            to_visit.sort()
+            print(to_visit)
+            extraction.append(self.extract_one_page(to_visit[0][1]))
+            self.already_visited.append(to_visit.pop(0)[1])
+            for link in extraction[nb_of_pages_visited]["links"]:
+                if link not in self.already_visited:
+                    to_visit.append((self.give_priority(link), link))
+            nb_of_pages_visited += 1
+            self.politeness()
+        return extraction
 
-crawler = Crawler()
-crawler.get_robots_txt(base_url="https://web-scraping.dev")
-crawler.extract("https://web-scraping.dev/products")
+
+crawler = Crawler(base_url="https://web-scraping.dev", limit=10)
+extraction = crawler.extract_some_pages("https://web-scraping.dev/products")
