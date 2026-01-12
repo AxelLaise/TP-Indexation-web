@@ -80,9 +80,9 @@ class Crawler():
             return extraction
     
     def give_priority(self, link):
-        if "/prodcut/" in link:
+        if "/product/" in link:
             return 0
-        elif "/products" in link:
+        elif "products" in link:
             return 1
         else:
             return 2
@@ -99,16 +99,16 @@ class Crawler():
         nb_of_pages_visited = 1
         while nb_of_pages_visited < self.limit:
             to_visit.sort()
-            print(to_visit)
             extraction.append(self.extract_one_page(to_visit[0][1]))
             self.already_visited.append(to_visit.pop(0)[1])
             for link in extraction[nb_of_pages_visited]["links"]:
-                if link not in self.already_visited:
+                if (self.give_priority(link),link) not in self.already_visited:
                     to_visit.append((self.give_priority(link), link))
             nb_of_pages_visited += 1
             self.politeness()
         return extraction
 
 
-crawler = Crawler(base_url="https://web-scraping.dev", limit=10)
+crawler = Crawler(base_url="https://web-scraping.dev", limit=50)
 extraction = crawler.extract_some_pages("https://web-scraping.dev/products")
+print(extraction)
