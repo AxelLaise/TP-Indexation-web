@@ -2,6 +2,7 @@ import urllib.request
 import urllib.robotparser
 import time
 from bs4 import BeautifulSoup
+import json
 
 class Crawler():
     def __init__(self, base_url, limit):
@@ -80,7 +81,7 @@ class Crawler():
             return extraction
     
     def give_priority(self, link):
-        if "/product/" in link:
+        if "product/" in link:
             return 0
         elif "products" in link:
             return 1
@@ -95,20 +96,25 @@ class Crawler():
         extraction.append(self.extract_one_page(url_dep))
         self.already_visited.append(url_dep)
         for link in extraction[0]["links"]:
-                to_visit.append((self.give_priority(link), link))
+                if (self.give_priority(link), link) not in to_visit:
+                    to_visit.append((self.give_priority(link), link))
         nb_of_pages_visited = 1
         while nb_of_pages_visited < self.limit:
+            self.politeness()
             to_visit.sort()
             extraction.append(self.extract_one_page(to_visit[0][1]))
             self.already_visited.append(to_visit.pop(0)[1])
             for link in extraction[nb_of_pages_visited]["links"]:
-                if (self.give_priority(link),link) not in self.already_visited:
+                if link not in self.already_visited and (self.give_priority(link),link) not in to_visit:
                     to_visit.append((self.give_priority(link), link))
             nb_of_pages_visited += 1
-            self.politeness()
         return extraction
 
+if __name__ == "__main__":
+    crawler = Crawler(base_url="https://web-scraping.dev", limit=50)
+    extraction = crawler.extract_some_pages("https://web-scraping.dev/products")
 
-crawler = Crawler(base_url="https://web-scraping.dev", limit=50)
-extraction = crawler.extract_some_pages("https://web-scraping.dev/products")
-print(extraction)
+    with open('TP1/output_tp1', 'w') as fichier:
+        for extract in extraction:
+            json.dump(extract, fichier)
+            fichier.write('\n')
