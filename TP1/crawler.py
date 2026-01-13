@@ -264,7 +264,7 @@ if __name__ == "__main__":
     crawler = Crawler(limit=50)
     extraction = crawler.extract_some_pages("https://web-scraping.dev/products")
 
-    with open('TP1/output_tp1.jsonl', 'w') as fichier:
+    with open('TP1/output_tp1.jsonl', 'w') as file:
         for extract in extraction:
-            json.dump(extract, fichier)
-            fichier.write('\n')
+            json.dump(extract, file)
+            file.write('\n')
