@@ -80,9 +80,9 @@ class Index():
             cleaned_title = self.tokenize_and_clean_text(title)
             for token in cleaned_title:
                 if token in title_index.keys():
-                    title_index[f"{token}"].append(page["url"])
+                    title_index[token].append(page["url"])
                 else:
-                    title_index[f"{token}"] = [page["url"]]
+                    title_index[token] = [page["url"]]
         return title_index
     
     def create_description_index(self):
@@ -98,9 +98,9 @@ class Index():
             cleaned_description = self.tokenize_and_clean_text(description)
             for token in cleaned_description:
                 if token in description_index.keys():
-                    description_index[f"{token}"].append(page["url"])
+                    description_index[token].append(page["url"])
                 else:
-                    description_index[f"{token}"] = [page["url"]]
+                    description_index[token] = [page["url"]]
         return description_index
 
     def get_token_position(self, tokens, token):
@@ -133,9 +133,9 @@ class Index():
             for token in cleaned_title:
                 positions = self.get_token_position(cleaned_title, token)
                 if not token in title_index.keys():
-                    title_index[f"{token}"] = {}
-                if not page["url"] in title_index[f"{token}"].keys(): # To avoid doing twice the same word in the same page
-                    title_index[f"{token}"][page["url"]] = positions
+                    title_index[token] = {}
+                if not page["url"] in title_index[token].keys(): # To avoid doing twice the same word in the same page
+                    title_index[token][page["url"]] = positions
         return title_index
     
     def create_description_index_with_position(self):
@@ -152,9 +152,9 @@ class Index():
             for token in cleaned_description:
                 positions = self.get_token_position(cleaned_description, token)
                 if not token in description_index.keys():
-                    description_index[f"{token}"] = {}
-                if not page["url"] in description_index[f"{token}"].keys(): # To avoid doing twice the same word in the same page
-                    description_index[f"{token}"][page["url"]] = positions
+                    description_index[token] = {}
+                if not page["url"] in description_index[token].keys(): # To avoid doing twice the same word in the same page
+                    description_index[token][page["url"]] = positions
         return description_index
     
     def extract_reviews_info(self, page):
@@ -218,7 +218,7 @@ class Index():
                 cleaned_featured = self.tokenize_and_clean_text(feature_text)
                 for token in cleaned_featured:
                     if token in feature_index.keys():
-                        feature_index[f"{token}"].append(page["url"])
+                        feature_index[token].append(page["url"])
                     else:
-                        feature_index[f"{token}"] = [page["url"]]
+                        feature_index[token] = [page["url"]]
         return feature_index
