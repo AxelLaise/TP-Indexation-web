@@ -155,6 +155,7 @@ class Crawler():
                 if link not in self.already_visited and (self.give_priority(link),link) not in to_visit:
                     to_visit.append((self.give_priority(link), link))
             nb_of_pages_visited += 1
+        extraction = sorted(extraction, key=lambda x: x["url"])
         return extraction
 
 if __name__ == "__main__":
