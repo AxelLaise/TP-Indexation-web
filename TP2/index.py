@@ -1,6 +1,7 @@
 from TP2.url_traitment import extract_from_all_line
 import nltk
 import re
+import numpy
 
 class Index():
     def __init__(self, path):
@@ -50,9 +51,31 @@ class Index():
                 else:
                     description_index[f"{token}"] = [line["url"]]
         return description_index
+    
+    def create_reviews_index(self):
+        reviews_index = {}
+        for line in self.data:
+            product_reviews = line["product_reviews"]
+            if product_reviews != []:
+                number_of_rating = len(product_reviews)
+                product_reviews = sorted(product_reviews, key=lambda x: x["date"], reverse=True)
+                last_rating = product_reviews[0]["rating"]
+                avg_rating = 0
+                for review in product_reviews:
+                    avg_rating += int(review["rating"])
+                avg_rating = avg_rating/number_of_rating
+            else:
+                number_of_rating = 0
+                last_rating = 0
+                avg_rating = 0
+            reviews_index[line["url"]] = {"total_reviews": number_of_rating, "mean_mark": avg_rating, "last_rating": last_rating}
+        return reviews_index
+
+
 
 
 index = Index("TP2/products.jsonl")
 title_index = index.create_title_index()
 description_index = index.create_description_index()
+reviews_index = index.create_reviews_index()
 
