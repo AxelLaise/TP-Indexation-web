@@ -1,4 +1,4 @@
 urllib3
 bs4
 nltk
-numpy
+stop_words
