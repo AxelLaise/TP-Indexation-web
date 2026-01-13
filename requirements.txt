@@ -1,4 +1,3 @@
 urllib3
 bs4
 nltk
-stop_words

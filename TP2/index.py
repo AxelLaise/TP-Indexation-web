@@ -1,10 +1,11 @@
 from TP2.url_traitment import extract_from_all_line
 import re
-from stopwords import get_stopwords
+import nltk
 
 class Index():
     def __init__(self, path):
-        self.stopwords = set(get_stopwords('english'))
+        nltk.download('stopwords')
+        self.stopwords = set(nltk.corpus.stopwords.words('english'))
         self.data = extract_from_all_line(path)
 
     def tokenize(self, text):
@@ -123,3 +124,5 @@ brand_index = index.create_feature_index("brand")
 origin_index = index.create_feature_index("made in")
 flavor_index = index.create_feature_index("flavor")
 material_index = index.create_feature_index("material")
+
+print(index.tokenize_and_clean_text("Stay comfortable during your runs with our Men's Running Shoes. Featuring a breathable upper and a cushioned midsole, these shoes provide excellent ventilation and shock absorption. The durable outsole offers solid traction, ensuring stability even on slippery surfaces. With a sleek design and various color options, you can hit the road or the treadmill in style."))
