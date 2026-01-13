@@ -1,13 +1,14 @@
 import urllib.request
 import urllib.robotparser
+import urllib.parse
 import time
 from bs4 import BeautifulSoup
 import json
 
 class Crawler():
-    def __init__(self, base_url, limit):
-        self.base_url = base_url
-        self.rp = self.get_robots_txt()
+    def __init__(self, limit):
+        self.base_url = ""
+        self.rp = self.read_robots_txt()
         self.limit = limit
         self.already_visited = []
 
@@ -16,8 +17,12 @@ class Crawler():
         response = urllib.request.urlopen(request)
         data=response.read()
         return(data)
+    
+    def find_base_url(self, url):
+        url_parse = urllib.parse.urlparse(url)
+        return url_parse.scheme + "://" + url_parse.netloc
 
-    def get_robots_txt(self):
+    def read_robots_txt(self):
         rp = urllib.robotparser.RobotFileParser()
         rp.set_url(self.base_url + "/robots.txt")
         rp.read()
@@ -93,6 +98,7 @@ class Crawler():
     def extract_some_pages(self, url_dep):
         to_visit = []
         extraction = []
+        self.base_url = self.find_base_url(url_dep)
         extraction.append(self.extract_one_page(url_dep))
         self.already_visited.append(url_dep)
         for link in extraction[0]["links"]:
@@ -102,6 +108,10 @@ class Crawler():
         while nb_of_pages_visited < self.limit:
             self.politeness()
             to_visit.sort()
+            new_base_url = self.find_base_url(to_visit[0][1])
+            if new_base_url != self.base_url:
+                self.base_url = new_base_url
+                self.rp = self.read_robots_txt()
             extraction.append(self.extract_one_page(to_visit[0][1]))
             self.already_visited.append(to_visit.pop(0)[1])
             for link in extraction[nb_of_pages_visited]["links"]:
