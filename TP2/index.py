@@ -111,18 +111,3 @@ class Index():
                     else:
                         feature_index[f"{token}"] = [line["url"]]
         return feature_index
-
-#### Features a ajouté, flavor, material
-
-index = Index("TP2/products.jsonl")
-
-title_index = index.create_title_index_with_position()
-description_index = index.create_description_index_with_position()
-print(description_index)
-reviews_index = index.create_reviews_index()
-brand_index = index.create_feature_index("brand")
-origin_index = index.create_feature_index("made in")
-flavor_index = index.create_feature_index("flavor")
-material_index = index.create_feature_index("material")
-
-print(index.tokenize_and_clean_text("Stay comfortable during your runs with our Men's Running Shoes. Featuring a breathable upper and a cushioned midsole, these shoes provide excellent ventilation and shock absorption. The durable outsole offers solid traction, ensuring stability even on slippery surfaces. With a sleek design and various color options, you can hit the road or the treadmill in style."))
