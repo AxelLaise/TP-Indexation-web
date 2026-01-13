@@ -129,6 +129,9 @@ class Crawler():
         extraction = []
         self.base_url = self.find_base_url(url_dep)
         self.robot_parser = self.read_robots_txt()
+        first_page = self.extract_one_page(url_dep)
+        if first_page is None:
+            return extraction
         extraction.append(self.extract_one_page(url_dep))
         self.already_visited.append(url_dep)
         for link in extraction[0]["links"]:
@@ -138,14 +141,17 @@ class Crawler():
         while nb_of_pages_visited < self.limit:
             self.politeness()
             to_visit = sorted(to_visit)
-            print(to_visit)
-            new_base_url = self.find_base_url(to_visit[0][1])
+            new_url = to_visit.pop(0)[1]
+            new_base_url = self.find_base_url(new_url)
             if new_base_url != self.base_url:
                 self.base_url = new_base_url
                 self.robot_parser = self.read_robots_txt()
-            extraction.append(self.extract_one_page(to_visit[0][1]))
-            self.already_visited.append(to_visit.pop(0)[1])
-            for link in extraction[nb_of_pages_visited]["links"]:
+            page = self.extract_one_page(new_url)
+            if page is None:
+                continue
+            extraction.append(page)
+            self.already_visited.append(new_url)
+            for link in page["links"]:
                 if link not in self.already_visited and (self.give_priority(link),link) not in to_visit:
                     to_visit.append((self.give_priority(link), link))
             nb_of_pages_visited += 1
