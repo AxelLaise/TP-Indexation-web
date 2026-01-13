@@ -89,7 +89,7 @@ def extract_from_all_page(path):
     List[Dict]
         List of informations about pages with product_id and variant as new keys for each page
     """
-    data = read_jsonl("TP2/products.jsonl")
+    data = read_jsonl(path)
     for page in data:
         page = extract_from_one_page(page)
     return data
