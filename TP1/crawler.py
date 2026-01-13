@@ -7,36 +7,65 @@ import json
 
 class Crawler():
     def __init__(self, limit):
-        self.base_url = ""
-        self.rp = self.read_robots_txt()
-        self.limit = limit
-        self.already_visited = []
+        self.base_url = ""                              # The scheme + netloc url for finding robots.txt
+        self.robot_parser = None                        # Permissions in robots.txt
+        self.limit = limit                              # The limit of pages we want to explore
+        self.already_visited = []                       # The pages we already visit to not visit them twice in the same crawling
 
     def get_html(self, url):
+        """
+        Parameter
+        ---------
+        url: String
+            The url of the page we want to extract the html
+        
+        Return
+        ------
+        String
+            The html of the page
+        """
         request = urllib.request.Request(url=url, method='GET')
         response = urllib.request.urlopen(request)
         data=response.read()
         return(data)
     
     def find_base_url(self, url):
+        """
+        Parameter
+        ---------
+        url: String
+            The url from where we want to extract the scheme + netloc parts
+        
+        Return
+        ------
+        String
+            The scheme + netloc parts of the url
+
+        Example
+        -------
+        >>> crawler = Crawler(limit=50)
+        >>> print(crawler.find_base_url('https://web-scraping.dev/products'))
+            https://web-scraping.dev
+        """
         url_parse = urllib.parse.urlparse(url)
         return url_parse.scheme + "://" + url_parse.netloc
 
     def read_robots_txt(self):
-        rp = urllib.robotparser.RobotFileParser()
-        rp.set_url(self.base_url + "/robots.txt")
-        rp.read()
-        return rp
+        robot_parser = urllib.robotparser.RobotFileParser()
+        robot_parser.set_url(self.base_url + "/robots.txt")
+        robot_parser.read()
+        return robot_parser
 
     def politeness(self):
-        delay = self.rp.crawl_delay('*')
+        # Respect the delay for crawling indicate in the robots.txt or wait 1 second between each parsing to respect politeness
+        delay = self.robot_parser.crawl_delay('*')
         if delay is None:
             time.sleep(1)
         else:
             time.sleep(delay)
 
     def can_parse(self, url):
-        return self.rp.can_fetch('*', url)
+        return self.robot_parser.can_fetch('*', url)
     
     def parse_page(self, url):
         if self.can_parse(url):
@@ -99,6 +128,7 @@ class Crawler():
         to_visit = []
         extraction = []
         self.base_url = self.find_base_url(url_dep)
+        self.robot_parser = self.read_robots_txt()
         extraction.append(self.extract_one_page(url_dep))
         self.already_visited.append(url_dep)
         for link in extraction[0]["links"]:
@@ -107,11 +137,12 @@ class Crawler():
         nb_of_pages_visited = 1
         while nb_of_pages_visited < self.limit:
             self.politeness()
-            to_visit.sort()
+            to_visit = sorted(to_visit)
+            print(to_visit)
             new_base_url = self.find_base_url(to_visit[0][1])
             if new_base_url != self.base_url:
                 self.base_url = new_base_url
-                self.rp = self.read_robots_txt()
+                self.robot_parser = self.read_robots_txt()
             extraction.append(self.extract_one_page(to_visit[0][1]))
             self.already_visited.append(to_visit.pop(0)[1])
             for link in extraction[nb_of_pages_visited]["links"]:
@@ -121,7 +152,7 @@ class Crawler():
         return extraction
 
 if __name__ == "__main__":
-    crawler = Crawler(base_url="https://web-scraping.dev", limit=50)
+    crawler = Crawler(limit=50)
     extraction = crawler.extract_some_pages("https://web-scraping.dev/products")
 
     with open('TP1/output_tp1', 'w') as fichier:
