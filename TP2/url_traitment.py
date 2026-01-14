@@ -14,8 +14,8 @@ def read_jsonl(path):
         A list containing each page of the jsonl
     """
     data=[]
-    with open(path, "r") as f:
-        for page in f:
+    with open(path, "r") as file:
+        for page in file:
             data.append(json.loads(page))
     return data
 
