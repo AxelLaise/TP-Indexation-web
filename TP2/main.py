@@ -10,17 +10,10 @@ if __name__ == "__main__":
     origin_index = index.create_feature_index("made in")
     flavor_index = index.create_feature_index("flavor")
     material_index = index.create_feature_index("material")
-    with open('TP2/output/title_index.json', 'w') as file:
-        json.dump(title_index, file, indent=1)
-    with open('TP2/output/description_index.json', 'w') as file:
-        json.dump(description_index, file, indent=1)
-    with open('TP2/output/reviews_index.json', 'w') as file:
-        json.dump(reviews_index, file, indent=1)
-    with open('TP2/output/brand_index.json', 'w') as file:
-        json.dump(brand_index, file, indent=1)
-    with open('TP2/output/origin_index.json', 'w') as file:
-        json.dump(origin_index, file, indent=1)
-    with open('TP2/output/flavor_index.json', 'w') as file:
-        json.dump(flavor_index, file, indent =1)
-    with open('TP2/output/material_index.json', 'w') as file:
-        json.dump(material_index, file, indent=1)
+    index.save_index(title_index, "title_index")
+    index.save_index(description_index, "description_index")
+    index.save_index(reviews_index, "reviews_index")
+    index.save_index(brand_index, "brand_index")
+    index.save_index(origin_index, "origin_index")
+    index.save_index(flavor_index, "flavor_index")
+    index.save_index(material_index, "material_index")

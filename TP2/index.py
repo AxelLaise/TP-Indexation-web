@@ -1,6 +1,7 @@
 from TP2.url_traitment import extract_from_all_page
 import re
 import nltk
+import json
 
 class Index():
     def __init__(self, path):
@@ -222,3 +223,16 @@ class Index():
                     else:
                         feature_index[token] = [page["url"]]
         return feature_index
+    
+    def save_index(self, index, file_name):
+        """
+        Parameter
+        ---------
+        index: Dict
+            The index or inverted index to save in a json file
+        
+        file_name: String
+            The name of the json file to write the index
+        """
+        with open(f'TP2/output/{file_name}.json', 'w') as file:
+            json.dump(index, file, indent=1)
