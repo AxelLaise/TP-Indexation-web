@@ -68,42 +68,6 @@ class Index():
         clean_tokens= self.remove_stopwords(clean_tokens)
         return clean_tokens
     
-    def create_title_index(self):
-        """
-        Return
-        ------
-        Dict
-            The inverted index of the title for the database
-        """
-        title_index = {}
-        for page in self.data:
-            title = page["title"]
-            cleaned_title = self.tokenize_and_clean_text(title)
-            for token in cleaned_title:
-                if token in title_index.keys():
-                    title_index[token].append(page["url"])
-                else:
-                    title_index[token] = [page["url"]]
-        return title_index
-    
-    def create_description_index(self):
-        """
-        Return
-        ------
-        Dict
-            The inverted index of the description for the database
-        """
-        description_index = {}
-        for page in self.data:
-            description = page["description"]
-            cleaned_description = self.tokenize_and_clean_text(description)
-            for token in cleaned_description:
-                if token in description_index.keys():
-                    description_index[token].append(page["url"])
-                else:
-                    description_index[token] = [page["url"]]
-        return description_index
-
     def get_token_position(self, tokens, token):
         """
         Parameter
@@ -120,6 +84,29 @@ class Index():
         """
         return [position for position, value in enumerate(tokens) if value == token]
     
+    def create_index_with_position(self, field):
+        """
+        Parameter
+        ---------
+        field: String
+            "title" or "description" the name of the field we want to have an inverted index
+        Return
+        ------
+        Dict
+            The inverted index of the field for the database with positions in each documents
+        """
+        index = {}
+        for page in self.data:
+            text = page[field]
+            cleaned_tokens = self.tokenize_and_clean_text(text)
+            for token in cleaned_tokens:
+                positions = self.get_token_position(cleaned_tokens, token)
+                if not token in index.keys():
+                    index[token] = {}
+                if not page["url"] in index[token].keys(): # To avoid doing twice the same word in the same page
+                    index[token][page["url"]] = positions
+        return index
+    
     def create_title_index_with_position(self):
         """
         Return
@@ -127,17 +114,7 @@ class Index():
         Dict
             The inverted index of the title for the database with positions in each documents
         """
-        title_index = {}
-        for page in self.data:
-            title = page["title"]
-            cleaned_title = self.tokenize_and_clean_text(title)
-            for token in cleaned_title:
-                positions = self.get_token_position(cleaned_title, token)
-                if not token in title_index.keys():
-                    title_index[token] = {}
-                if not page["url"] in title_index[token].keys(): # To avoid doing twice the same word in the same page
-                    title_index[token][page["url"]] = positions
-        return title_index
+        return self.create_index_with_position("title")
     
     def create_description_index_with_position(self):
         """
@@ -146,17 +123,7 @@ class Index():
         Dict
             The inverted index of the description for the database with positions in each documents
         """
-        description_index = {}
-        for page in self.data:
-            description = page["description"]
-            cleaned_description = self.tokenize_and_clean_text(description)
-            for token in cleaned_description:
-                positions = self.get_token_position(cleaned_description, token)
-                if not token in description_index.keys():
-                    description_index[token] = {}
-                if not page["url"] in description_index[token].keys(): # To avoid doing twice the same word in the same page
-                    description_index[token][page["url"]] = positions
-        return description_index
+        return self.create_index_with_position("description")
     
     def extract_reviews_info(self, page):
         """

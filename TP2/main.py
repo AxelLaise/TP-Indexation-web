@@ -1,5 +1,4 @@
 from index import Index
-import json
 
 if __name__ == "__main__":
     index = Index("TP2/products.jsonl")
