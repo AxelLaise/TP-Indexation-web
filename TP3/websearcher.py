@@ -1,7 +1,8 @@
-from pre_traitment import read_json
+from pre_traitment import read_json, read_jsonl
 import nltk
 import re
 import numpy
+import json
 
 class Websearcher():
     def __init__(self):
@@ -13,6 +14,7 @@ class Websearcher():
         self.synonyms = read_json("TP3/input/synonyms.json")
         nltk.download('stopwords')
         self.stopwords = set(nltk.corpus.stopwords.words('english'))
+        self.data = read_jsonl("TP3/rearranged_products.jsonl")
     
     def tokenize(self, text):
         """
@@ -207,54 +209,94 @@ class Websearcher():
         bm25_title = self.bm25(filtered_documents, tokens, self.title_index)
         bm25_desc  = self.bm25(filtered_documents, tokens, self.description_index)
             
-        midway_score = []
+        rank = []
         docs_all_title = self.verify_all_tokens(tokens, self.title_index)
         docs_all_desc  = self.verify_all_tokens(tokens, self.description_index)
         docs_brand = self.verify_at_least_one_token(tokens, self.brand_index)
         docs_origin = self.verify_at_least_one_token(tokens, self.origin_index)
+        every_score = []
 
         for doc in filtered_documents:
-            score_title = bm25_title.get(doc, 0)
-            score_desc  = bm25_desc.get(doc, 0)
-            score = score_title * 2 + score_desc
+            score_for_one_doc = {}
 
-            exact_title = self.exact_match(tokens, doc, self.title_index)
-            exact_desc  = self.exact_match(tokens, doc, self.description_index)
-            score += exact_title * 5 + exact_desc * 2
+            score_title = bm25_title.get(doc, 0) * 2
+            score_desc  = bm25_desc.get(doc, 0)
+            score = score_title + score_desc
+
+            exact_title = self.exact_match(tokens, doc, self.title_index) * 5
+            exact_desc  = self.exact_match(tokens, doc, self.description_index) 
+            score += exact_title + exact_desc
 
             if doc in docs_all_title: score += 3
-            if doc in docs_all_desc:  score += 1
-            if doc in docs_brand: score += 2
-            if doc in docs_origin: score += 2
+            if doc in docs_all_desc:  score += 0.5
+            if doc in docs_brand: score += 1
+            if doc in docs_origin: score += 1
 
             review = self.reviews_index[doc]
-            review_score = numpy.log(1 + review["total_reviews"]) * review["mean_mark"]
+            review_score = numpy.log(1 + review["total_reviews"]) * review["mean_mark"] * 0.2
             score += review_score
 
-            early_title = self.early_match(tokens, doc, self.title_index)
             early_desc  = self.early_match(tokens, doc, self.description_index)
-            score += 0.8 * (early_title * 2 + early_desc)
+            score += early_desc
 
-            midway_score.append(score)
+            rank.append(score)
+            #This was used to adjust weight on different signals
+            #score_for_one_doc["all_tokens_in_title"] = 0
+            #score_for_one_doc["all_tokens_in_desc"] = 0
+            #score_for_one_doc["token_in_brand"] = 0
+            #score_for_one_doc["token_in_origin"] = 0
+            #score_for_one_doc["bm25_title"] = score_title
+            #score_for_one_doc["bm25_description"] = score_desc
+            #score_for_one_doc["exact_title"] = exact_title
+            #score_for_one_doc["exact_description"] = exact_desc
+            #if doc in docs_all_title: score_for_one_doc["all_tokens_in_title"] = 3
+            #if doc in docs_all_desc: score_for_one_doc["all_tokens_in_desc"] = 0.5
+            #if doc in docs_brand: score_for_one_doc["token_in_brand"] = 2
+            #if doc in docs_origin: score_for_one_doc["token_in_origin"] = 2
+            #score_for_one_doc["review_score"] = review_score
+            #score_for_one_doc["early_desc"] = early_desc
+            #every_score.append(score_for_one_doc)
 
-        final_score = [
-            [midway_score[i], doc]
-            for i, doc in enumerate(filtered_documents)
-        ]
+        final_score = [[rank[i], doc]for i, doc in enumerate(filtered_documents)]
 
         return final_score
+    
+    def extract_title_and_description(self, document):
+        title = self.data[document]["title"]
+        description = self.data[document]["description"]
+        return title, description
 
-    def search(self, request, limit=10):
+        
+    def search(self, request):
+        metadata = {}
         tokenized_request = self.request_traitment(request)
-        print(tokenized_request)
         filtered_documents = self.filter_documents(tokenized_request)
         score = self.linear_scoring(tokenized_request, filtered_documents)
+        metadata["number_of_filtered_documents"] = len(filtered_documents)
+        metadata["number_of_documents"] = len(self.data)
         score.sort(reverse=True)
-        if limit > len(score):
-            limit = len(score)
-        res = [doc for _, doc in score[:limit]]
-        return res
-
+        search_result = {}
+        for rank, doc in score:
+            title, description = self.extract_title_and_description(doc)
+            search_result[doc]={}
+            search_result[doc]["rank"] = rank
+            search_result[doc]["title"] = title
+            search_result[doc]["description"] = description
+        return {"search_result": search_result, "metadata": metadata}
+    
+    def save_search(self, search_result, file_name):
+        """
+        Parameter
+        ---------
+        search_result: Dict
+            The result of the search
+        
+        file_name: String
+            The name of the json file to write the search result
+        """
+        with open(f'TP3/output/{file_name}.json', 'w') as file:
+            json.dump(search_result, file, indent=1)
+    
 
 
 
@@ -265,5 +307,3 @@ class Websearcher():
 
 
 
-websearcher = Websearcher()
-print(websearcher.search("drink energy"))
