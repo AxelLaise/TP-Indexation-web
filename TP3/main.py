@@ -35,4 +35,3 @@ for query in queries:
     search_result = websearcher.search(query)
     websearcher.save_search(search_result, query)
     
-    

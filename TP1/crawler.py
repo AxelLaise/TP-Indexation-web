@@ -268,3 +268,4 @@ if __name__ == "__main__":
         for extract in extraction:
             json.dump(extract, file)
             file.write('\n')
+    

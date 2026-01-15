@@ -76,61 +76,128 @@ class Websearcher():
         return clean_tokens
     
     def find_synonym(self, token):
+        """
+        Parameter
+        ---------
+        token: String
+        
+        Return
+        ------
+        String
+            the synonym  of the token from the dictionnary if it exists 
+        """
         for values in self.synonyms.values():
             if token in values:
                 return next(key for key, value in self.synonyms.items() if value == values)
         return None
     
-    def replace_by_synonym(self, position, request_tokenized):
-        synonym = self.find_synonym(request_tokenized[position])
+    def replace_by_synonym(self, position, query_tokenized):
+        """
+        Parameter
+        ---------
+        position: int
+            the position of the token to replace
+
+        query_tokenized: String
+        
+        Return
+        ------
+        List[String]
+            The query with the token replaced by it's synonym
+        """
+        synonym = self.find_synonym(query_tokenized[position])
         if synonym is None:
             return None
-        request = request_tokenized.copy()
-        request[position] = synonym
-        return request
+        query = query_tokenized.copy()
+        query[position] = synonym
+        return query
 
     
-    def request_traitment(self, request):
-        cleaned_tokens = self.tokenize_and_clean_text(request)
-        request = cleaned_tokens
+    def query_traitment(self, query):
+        """
+        Parameter
+        ---------
+        query: String
+        
+        Return
+        ------
+        List[String]
+            the query after processing (tokenization, synonyms, remove_stopwords)
+        """
+        cleaned_tokens = self.tokenize_and_clean_text(query)
+        query = cleaned_tokens
         for position in range(len(cleaned_tokens)):
-            synonym_request = self.replace_by_synonym(position, request)
-            if synonym_request is None:
+            synonym_query = self.replace_by_synonym(position, query)
+            if synonym_query is None:
                 continue
-            request = synonym_request
-        return request
+            query = synonym_query
+        return query
     
     def verify_at_least_one_token(self, tokens, index):
-        all_urls = set()
+        """
+        Parameter
+        ---------
+        tokens: List[String]
+        
+        index: Dict
+            the index where we want to search
+        Return
+        ------
+        set(String)
+            all documents where a token appeared at least once in the chosen index
+        """
+        all_documents = set()
         for token in tokens:
             if token in index.keys():
                 if isinstance(index[token], dict):
-                    all_urls |= set(index[token].keys())
+                    all_documents |= set(index[token].keys())
                 else:
-                    all_urls |= set(index[token])
-        return all_urls
+                    all_documents |= set(index[token])
+        return all_documents
 
         
 
     def verify_all_tokens(self, tokens, index):
-        all_urls = None
+        """
+        Parameter
+        ---------
+        tokens: List[String]
+        
+        index: Dict
+            the index where we want to search
+        Return
+        ------
+        set(String)
+            all documents where every tokens appeared in the chosen index
+        """
+        all_documents = None
         for token in tokens:
             if token in index.keys():
                 if isinstance(index[token], dict):
-                    if all_urls is None:
-                        all_urls = set(index[token].keys())
+                    if all_documents is None:
+                        all_documents = set(index[token].keys())
                     else:
-                        all_urls &= set(index[token].keys())
+                        all_documents &= set(index[token].keys())
                 else:
-                    if all_urls is None:
-                        all_urls = set(index[token])
+                    if all_documents is None:
+                        all_documents = set(index[token])
                     else:
-                        all_urls &= set(index[token])
+                        all_documents &= set(index[token])
             else:
                 return set()
-        return all_urls
+        return all_documents
     
     def filter_documents(self, tokens):
+        """
+        Parameter
+        ---------
+        tokens: List[String]
+        
+        Return
+        ------
+        set(String)
+            all documents where a token appeared at least once
+        """
         filtered_documents = self.verify_at_least_one_token(tokens, self.title_index)
         filtered_documents |= self.verify_at_least_one_token(tokens, self.description_index)
         filtered_documents |= self.verify_at_least_one_token(tokens, self.brand_index)
@@ -138,20 +205,67 @@ class Websearcher():
         return filtered_documents
 
     def inverse_document_frequency(self, token, filtered_documents, index):
+        """
+        Parameter
+        ---------
+        token: String
+
+        filtered_documents: set(String)
+
+        index: Dict
+            Corresponding to the field in the definition of the lesson
+        
+        Return
+        ------
+        float
+            The value of the IDF for the given token and the given field
+        """
         number_of_documents = len(filtered_documents)
         documents_where_token_appeared = set()
-        documents_where_token_appeared |= self.verify_at_least_one_token([token], index)
+        documents_where_token_appeared |= self.verify_at_least_one_token([token], index) # Find all document where the token appeared in the given index
         number_of_documents_where_token_appeared = len(documents_where_token_appeared)
-        return numpy.log((number_of_documents + 1)/(number_of_documents_where_token_appeared + 1))
+        return numpy.log((number_of_documents + 1)/(number_of_documents_where_token_appeared + 1)) # The +1 to avoid dividing by 0 and doing log(0)
     
-    def frequency_of_token_in_document(self, token, url, index):
+    def frequency_of_token_in_document(self, token, document, index):
+        """
+        Parameter
+        ---------
+        token: String
+
+        document: String
+            the url of a document
+
+        index: Dict
+            Corresponding to the field in the definition of the lesson
+        
+        Return
+        ------
+        Integer
+            The value of the frequency for the given token in the given document and the given field
+        """
         frequency = 0
         if token in index.keys():
-            if url in index[token].keys():
-                frequency += len(index[token][url])
+            if document in index[token].keys():
+                frequency += len(index[token][document])
         return frequency
     
     def mean_length_of_documents(self, filtered_documents, index):
+        """
+        Parameter
+        ---------
+        filtered_documents: set(String)
+
+        index: Dict
+            Corresponding to the field in the definition of the lesson
+        
+        Return
+        ------
+        float
+            The average length of documents from the filtered documents for the given field
+        
+        List[Integer]
+            The length of the documents in the filtered document set for the given field
+        """
         length_of_documents = []
         for document in filtered_documents:
             length = 0
@@ -162,9 +276,38 @@ class Websearcher():
         return numpy.mean(length_of_documents), length_of_documents
     
     def len_penalization(self, length_document, mean):
+        """
+        Parameter
+        ---------
+        length_document: Integer
+            The length of a document 
+
+        mean: float
+            The average length of documents from the filtered documents
+        
+        Return
+        ------
+        float
+            The value of the penalization in bm25 formula
+        """
         return length_document / mean
     
     def bm25(self, filtered_documents, tokens, index, b=0.75, k1=1.2):
+        """
+        Parameter
+        ---------
+        filtered_documents: set(String)
+
+        tokens: List[String]
+
+        index: Dict
+            Corresponding to the field in the definition of the lesson
+        
+        Return
+        ------
+        float
+            The bm25 score for the given corpus, query and field
+        """
         mean_length_documents, length_of_documents = self.mean_length_of_documents(filtered_documents, index)
         bm25_score = {}
         for i, document in enumerate(filtered_documents):
@@ -172,7 +315,8 @@ class Websearcher():
             for token in tokens:
                 frequency = self.frequency_of_token_in_document(token, document, index)
                 if frequency == 0:
-                    continue
+                    continue # To avoid dividing by 0 
+                             # in this case the term in the sum is equal to 0 so we don't need to calculate everything else for this token
                 IDF = self.inverse_document_frequency(token, filtered_documents, index)
                 len_pen = self.len_penalization(length_of_documents[i], mean_length_documents)
                 score_for_token = IDF * (frequency * (k1 + 1))/(frequency + k1 * (1-b + b *len_pen))
@@ -181,31 +325,75 @@ class Websearcher():
         return bm25_score
     
     def exact_match(self, tokens, document, index):
-        if len(tokens) < 2:
+        """
+        Parameter
+        ---------
+        tokens: List[String]
+
+        document: String
+            the url of the document
+
+        index: Dict
+        
+        Return
+        ------
+        Integer
+            1 if there is an exact match in the given index 0 otherwise
+        """
+        if len(tokens) < 2: #There is no exact match for a one word query
             return 0
 
         positions = []
         for token in tokens:
-            if token in index and document in index[token]:
-                positions.append(index[token][document])
+            if token in index:
+                if document in index[token]: # verify if all tokens are in the document
+                    positions.append(index[token][document]) 
             else:
                 return 0
 
         for pos in positions[0]:
-            if all((pos + i) in positions[i] for i in range(len(tokens))):
+            if all((pos + i) in positions[i] for i in range(len(tokens))): # An exact match is defined by all the tokens in the same order next to each others
                 return 1
         return 0
     
     def early_match(self, tokens, document, index):
+        """
+        Parameter
+        ---------
+        tokens: List[String]
+
+        document: String
+            the url of the document
+
+        index: Dict
+        
+        Return
+        ------
+        float
+            between 0 and 1 to represent if the first token to match the query and the document is early in the document
+        """
         positions = []
         for token in tokens:
             if token in index:
                 if document in index[token]:
                     positions.append(min(index[token][document]))
-        return 1 / (1 + min(positions)) if positions else 0
+        return 1 / (1 + min(positions)) if positions else 0 # It only depends on the first token of the document in the given index.
 
     
     def linear_scoring(self, tokens, filtered_documents):
+        """
+        Parameter
+        ---------
+        tokens: List[String]
+
+        filtered_documents
+        
+        Return
+        ------
+       List[List[float, String]]
+            The ranking of every filtered documents
+        """
+        # The description of different scoring methods and ponderation are in the analysis.md file
         bm25_title = self.bm25(filtered_documents, tokens, self.title_index)
         bm25_desc  = self.bm25(filtered_documents, tokens, self.description_index)
             
@@ -214,10 +402,8 @@ class Websearcher():
         docs_all_desc  = self.verify_all_tokens(tokens, self.description_index)
         docs_brand = self.verify_at_least_one_token(tokens, self.brand_index)
         docs_origin = self.verify_at_least_one_token(tokens, self.origin_index)
-        every_score = []
 
         for doc in filtered_documents:
-            score_for_one_doc = {}
 
             score_title = bm25_title.get(doc, 0) * 2
             score_desc  = bm25_desc.get(doc, 0)
@@ -241,6 +427,7 @@ class Websearcher():
 
             rank.append(score)
             #This was used to adjust weight on different signals
+
             #score_for_one_doc["all_tokens_in_title"] = 0
             #score_for_one_doc["all_tokens_in_desc"] = 0
             #score_for_one_doc["token_in_brand"] = 0
@@ -262,16 +449,39 @@ class Websearcher():
         return final_score
     
     def extract_title_and_description(self, document):
+        """
+        Parameter
+        ---------
+        document: String
+            the url of the document
+        
+        Return
+        ------
+        String
+            The title of the given document
+        String
+            The description of the given document
+        """
         title = self.data[document]["title"]
         description = self.data[document]["description"]
         return title, description
 
         
-    def search(self, request):
+    def search(self, query):
+        """
+        Parameter
+        ---------
+        query: String
+
+        Return
+        ------
+        Dict{Dict, Dict}
+            The search result in order of ranking and the metadata of the query (number of filtered documents and number of document in the dataset)
+        """
         metadata = {}
-        tokenized_request = self.request_traitment(request)
-        filtered_documents = self.filter_documents(tokenized_request)
-        score = self.linear_scoring(tokenized_request, filtered_documents)
+        tokenized_query = self.query_traitment(query)
+        filtered_documents = self.filter_documents(tokenized_query)
+        score = self.linear_scoring(tokenized_query, filtered_documents)
         metadata["number_of_filtered_documents"] = len(filtered_documents)
         metadata["number_of_documents"] = len(self.data)
         score.sort(reverse=True)
@@ -296,14 +506,3 @@ class Websearcher():
         """
         with open(f'TP3/output/{file_name}.json', 'w') as file:
             json.dump(search_result, file, indent=1)
-    
-
-
-
-        
-
-            
-        
-
-
-
