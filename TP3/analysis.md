@@ -29,13 +29,13 @@ The weights have been choosen after analysed the results of the queries from the
 * Exact match title = 5
     If there is an exact match it boosts the document to the top with this value
 
-* Exact match description = 2
+* Exact match description = 1
     It is less important than title but it boosts the document
 
 * All tokens in title = 3
     Less important than exact match but more than exact match for description
 
-* All tokens in description = 1
+* All tokens in description = 0.5
     Can appeared a lot of time depending on the query so with this value it will not boosts too much documents
 
 * Token in brand = 1

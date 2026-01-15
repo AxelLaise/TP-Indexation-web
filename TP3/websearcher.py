@@ -91,47 +91,47 @@ class Websearcher():
                 return next(key for key, value in self.synonyms.items() if value == values)
         return None
     
-    def replace_by_synonym(self, position, query_tokenized):
+    def replace_by_synonym(self, position, request_tokenized):
         """
         Parameter
         ---------
         position: int
             the position of the token to replace
 
-        query_tokenized: String
+        request_tokenized: String
         
         Return
         ------
         List[String]
             The query with the token replaced by it's synonym
         """
-        synonym = self.find_synonym(query_tokenized[position])
+        synonym = self.find_synonym(request_tokenized[position])
         if synonym is None:
             return None
-        query = query_tokenized.copy()
-        query[position] = synonym
-        return query
+        request = request_tokenized.copy()
+        request[position] = synonym
+        return request
 
     
-    def query_traitment(self, query):
+    def request_traitment(self, request):
         """
         Parameter
         ---------
-        query: String
+        request: String
         
         Return
         ------
         List[String]
-            the query after processing (tokenization, synonyms, remove_stopwords)
+            the request after processing (tokenization, synonyms, remove_stopwords)
         """
-        cleaned_tokens = self.tokenize_and_clean_text(query)
-        query = cleaned_tokens
+        cleaned_tokens = self.tokenize_and_clean_text(request)
+        request = cleaned_tokens
         for position in range(len(cleaned_tokens)):
-            synonym_query = self.replace_by_synonym(position, query)
-            if synonym_query is None:
+            synonym_request = self.replace_by_synonym(position, request)
+            if synonym_request is None:
                 continue
-            query = synonym_query
-        return query
+            request = synonym_request
+        return request
     
     def verify_at_least_one_token(self, tokens, index):
         """
@@ -146,14 +146,14 @@ class Websearcher():
         set(String)
             all documents where a token appeared at least once in the chosen index
         """
-        all_documents = set()
+        all_urls = set()
         for token in tokens:
             if token in index.keys():
                 if isinstance(index[token], dict):
-                    all_documents |= set(index[token].keys())
+                    all_urls |= set(index[token].keys())
                 else:
-                    all_documents |= set(index[token])
-        return all_documents
+                    all_urls |= set(index[token])
+        return all_urls
 
         
 
@@ -170,22 +170,22 @@ class Websearcher():
         set(String)
             all documents where every tokens appeared in the chosen index
         """
-        all_documents = None
+        all_urls = None
         for token in tokens:
             if token in index.keys():
                 if isinstance(index[token], dict):
-                    if all_documents is None:
-                        all_documents = set(index[token].keys())
+                    if all_urls is None:
+                        all_urls = set(index[token].keys())
                     else:
-                        all_documents &= set(index[token].keys())
+                        all_urls &= set(index[token].keys())
                 else:
-                    if all_documents is None:
-                        all_documents = set(index[token])
+                    if all_urls is None:
+                        all_urls = set(index[token])
                     else:
-                        all_documents &= set(index[token])
+                        all_urls &= set(index[token])
             else:
                 return set()
-        return all_documents
+        return all_urls
     
     def filter_documents(self, tokens):
         """
@@ -226,13 +226,13 @@ class Websearcher():
         number_of_documents_where_token_appeared = len(documents_where_token_appeared)
         return numpy.log((number_of_documents + 1)/(number_of_documents_where_token_appeared + 1)) # The +1 to avoid dividing by 0 and doing log(0)
     
-    def frequency_of_token_in_document(self, token, document, index):
+    def frequency_of_token_in_document(self, token, url, index):
         """
         Parameter
         ---------
         token: String
 
-        document: String
+        url: String
             the url of a document
 
         index: Dict
@@ -245,8 +245,8 @@ class Websearcher():
         """
         frequency = 0
         if token in index.keys():
-            if document in index[token].keys():
-                frequency += len(index[token][document])
+            if url in index[token].keys():
+                frequency += len(index[token][url])
         return frequency
     
     def mean_length_of_documents(self, filtered_documents, index):
@@ -346,11 +346,12 @@ class Websearcher():
         positions = []
         for token in tokens:
             if token in index:
-                if document in index[token]: # verify if all tokens are in the document
+                if document in index[token]:
                     positions.append(index[token][document]) 
             else:
                 return 0
-
+        if len(positions) < len(token):  # verify if all tokens are in the document
+            return 0
         for pos in positions[0]:
             if all((pos + i) in positions[i] for i in range(len(tokens))): # An exact match is defined by all the tokens in the same order next to each others
                 return 1
@@ -422,7 +423,7 @@ class Websearcher():
             review_score = numpy.log(1 + review["total_reviews"]) * review["mean_mark"] * 0.2
             score += review_score
 
-            early_desc  = self.early_match(tokens, doc, self.description_index)
+            early_desc  = self.early_match(tokens, doc, self.description_index) * 0.8
             score += early_desc
 
             rank.append(score)
@@ -467,11 +468,11 @@ class Websearcher():
         return title, description
 
         
-    def search(self, query):
+    def search(self, request):
         """
         Parameter
         ---------
-        query: String
+        request: String
 
         Return
         ------
@@ -479,9 +480,9 @@ class Websearcher():
             The search result in order of ranking and the metadata of the query (number of filtered documents and number of document in the dataset)
         """
         metadata = {}
-        tokenized_query = self.query_traitment(query)
-        filtered_documents = self.filter_documents(tokenized_query)
-        score = self.linear_scoring(tokenized_query, filtered_documents)
+        tokenized_request = self.request_traitment(request)
+        filtered_documents = self.filter_documents(tokenized_request)
+        score = self.linear_scoring(tokenized_request, filtered_documents)
         metadata["number_of_filtered_documents"] = len(filtered_documents)
         metadata["number_of_documents"] = len(self.data)
         score.sort(reverse=True)
